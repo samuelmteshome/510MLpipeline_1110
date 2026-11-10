@@ -1,8 +1,26 @@
+**Test accuracy (logistic regression): 70.0%**
+
 # Heart Failure Mortality Prediction | AIPI 510
 
 **Authors:** Alberto Gomez and Samuel Teshome
 
 A simple, reproducible machine learning pipeline that predicts whether a heart failure patient died during follow-up (`DEATH_EVENT`) from 11 clinical measurements.
+
+## Reproduce the results
+
+Use Git, Bash, and Python 3.14 (tested with 3.14.0). From a directory where you want to keep the project, run this block in a macOS or Linux terminal. The first run needs internet access to clone the repository and install the pinned packages. The patient data is included.
+
+```sh
+git clone https://github.com/samuelmteshome/510MLpipeline_1110.git
+cd 510MLpipeline_1110
+python3.14 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements.txt
+bash run_pipeline.sh
+git diff --exit-code HEAD -- results/metrics.json && echo "Published metrics reproduced."
+```
+
+The runner prepares the split, trains both models from scratch, and regenerates the metrics and confusion matrix. Expect 239 training patients and 60 test patients. The last command compares every test metric and both confusion matrices against the committed JSON. On a match it prints `Published metrics reproduced.` For another run, activate the same environment and run `bash run_pipeline.sh` again.
 
 ## Results
 
@@ -34,19 +52,6 @@ The model beats the baseline modestly on accuracy, but it identifies 7 of 19 dea
 Scaling happens inside the scikit-learn pipeline, so it is learned from the training data only and no test information leaks into training.
 
 **Why `time` is excluded:** it records the length of follow-up, which is only known after the outcome. Patients who died tend to have short follow-ups, so including it would inflate the score without being usable for real prediction.
-
-## How to run
-
-From the repository root on macOS or Linux:
-
-```sh
-python3 -m venv .venv
-source .venv/bin/activate
-python -m pip install -r requirements.txt
-bash run_pipeline.sh
-```
-
-The dataset is bundled in `data/`, so the pipeline runs offline after installing dependencies.
 
 ## Dataset
 
