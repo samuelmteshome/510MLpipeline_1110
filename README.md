@@ -1,55 +1,52 @@
-# Heart failure clinical records | AIPI 510
+# Heart Failure Mortality Prediction | AIPI 510
 
-Prepare 299 patient records for binary classification. The target, `DEATH_EVENT`, indicates whether a patient died during their observed follow-up. Follow-up duration varies by patient. We exclude `time` because the final duration is unknown at the start of follow-up.
+**Authors:** Alberto Gomez and Samuel Teshome
 
-## Run in class
+A simple, reproducible machine learning pipeline that predicts whether a heart failure patient died during follow-up (`DEATH_EVENT`) from 11 clinical measurements.
 
-From the repository directory on macOS or Linux:
+## Results
+
+Logistic regression, evaluated once on 60 held-out test patients:
+
+| Metric | Logistic regression | Baseline (always predicts survival) |
+| --- | ---: | ---: |
+| **Test accuracy** | **70.0%** | 68.3% |
+| Recall (deaths detected) | 36.8% (7 of 19) | 0.0% (0 of 19) |
+| Precision | 53.8% | — |
+| Average precision | 0.605 | 0.317 (prevalence) |
+
+5-fold cross-validated accuracy on the training set: **74.5%** (baseline 67.8%).
+
+The model beats the baseline modestly on accuracy, but it identifies 7 of 19 deaths while the baseline identifies none. With only 299 patients and the follow-up time excluded, the remaining features carry limited signal.
+
+## Pipeline
+
+| Step | File | What it does |
+| --- | --- | --- |
+| 1. Prepare | `prepare.py` | Loads the CSV, selects 11 features, makes a stratified 80/20 split (`random_state=42`), and defines the preprocessing (scale 6 numeric features, keep 5 binary features as-is) |
+| 2. Train | `train.py` | Fits logistic regression and a majority-class baseline, reports 5-fold CV accuracy, and saves both to `artifacts/` |
+| 3. Evaluate | `evaluate.py` | Scores the saved model on the test set: average precision, precision, recall, and confusion-matrix counts |
+| Explore (optional) | `eda.py` | Summary statistics of the training data |
+
+Scaling happens inside the scikit-learn pipeline, so it is learned from the training data only and no test information leaks into training.
+
+**Why `time` is excluded:** it records the length of follow-up, which is only known after the outcome. Patients who died tend to have short follow-ups, so including it would inflate the score without being usable for real prediction.
+
+## How to run
+
+From the repository root on macOS or Linux:
 
 ```sh
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install -r requirements.txt
-python prepare.py
+bash run_pipeline.sh
 ```
 
-The original CSV is bundled so the exercise runs offline after dependency installation. The script creates a repeatable 80/20 split with similar outcome proportions in each group. It learns the means and standard deviations of six numeric features from the training patients, applies them to both groups, and passes five binary features through unchanged.
+The dataset is bundled in `data/`, so the pipeline runs offline after installing dependencies.
 
-## Explore the training data
+## Dataset
 
-Run `python eda.py` to reproduce the class counts, ranges, quartiles, and outcome comparisons. The 239 training records have no missing cells or duplicate complete rows. Of these patients, 77 (32.2%) had a recorded death. Follow-up ranges from 4 to 280 days, so the label describes an event during observation rather than risk by a common deadline.
+[Heart Failure Clinical Records](https://archive.ics.uci.edu/dataset/519/heart+failure+clinical+records) (UCI Machine Learning Repository): 299 patients, 12 features, no missing values. Redistributed unchanged under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). [DOI: 10.24432/C5Z89R](https://doi.org/10.24432/C5Z89R)
 
-| Training median | No recorded death (162) | Recorded death (77) |
-| --- | ---: | ---: |
-| Ejection fraction (%) | 38 | 30 |
-| Serum creatinine (mg/dL) | 1.0 | 1.4 |
-| Age (years) | 60 | 62 |
-| Serum sodium (mEq/L) | 137 | 136 |
-
-**Class experiment.** Start with ejection fraction and serum creatinine. Their group medians suggest a two-feature hypothesis that is easy to explain. Compare that pair with all 11 baseline features using the same classifier and identical stratified five-fold splits on the training set. For the pair, select those two columns and put a `StandardScaler` inside the pipeline. For all features, use `make_preprocessor()`. Keep the 60 test patients for one evaluation after choosing the specification.
-
-Serum creatinine has a long upper tail (median 1.1, maximum 9.4), as does creatinine phosphokinase (median 253, maximum 7,861). Keep these observations. If using a linear classifier, a log transform of the skewed measurements is a reasonable follow-up experiment. The binary variables show a mix of patterns. For example, recorded mortality is 34/89 (38%) with high blood pressure and 43/150 (29%) without it, while both sex groups are near 32%. These unadjusted rates alone cannot establish independent predictive value.
-
-**Scoring.** Always predicting no event would score 67.8% training accuracy and catch zero deaths. Compare models by cross-validated average precision, using the 32.2% event prevalence as a reference. Report recall and the confusion matrix at the chosen decision threshold to show how many deaths were missed and how many false alarms occurred.
-
-## Logistic regression workflow on `dev`
-
-| Owner | Files | Responsibility |
-| --- | --- | --- |
-| Sam | `evaluate.py`, `README.md` | Score the final model and document the class workflow |
-| Partner | `prepare.py`, `train.py` | Maintain the shared split, compare feature sets on training data, and save the selected pipeline |
-
-**Training handoff.** Use the training portion of `prepare.load_split()`. Save the fitted scikit-learn pipeline, including feature selection, scaling, and logistic regression, to `artifacts/model.joblib` with `joblib.dump`. Create the directory before saving. The pipeline should accept the original 11-column feature DataFrame and return probabilities for classes 0 and 1. For a two-feature model, select the two columns by name inside the pipeline.
-
-**Final evaluation.** After the training script is ready and the feature set is chosen, run from the repository root:
-
-```sh
-python train.py
-python evaluate.py
-```
-
-To use a different artifact path, run `python evaluate.py --model PATH` with a model saved by your team. The evaluator reconstructs the shared test split, reports average precision alongside event prevalence, and counts detected deaths, missed deaths, false alarms, and correct negatives at a fixed 0.50 threshold. Precision is the fraction of alerts that correspond to recorded deaths. Recall is the fraction of recorded deaths detected.
-
-## Data credit
-
-*Heart Failure Clinical Records* (2020), UCI Machine Learning Repository. The CSV is redistributed unchanged under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). [Dataset DOI](https://doi.org/10.24432/C5Z89R) · [Chicco & Jurman (2020)](https://doi.org/10.1186/s12911-020-1023-5)
+Chicco, D., & Jurman, G. (2020). [Machine learning can predict survival of patients with heart failure from serum creatinine and ejection fraction alone](https://doi.org/10.1186/s12911-020-1023-5). *BMC Medical Informatics and Decision Making*, 20, 16.
