@@ -1,4 +1,4 @@
-**Test accuracy (logistic regression): pending evaluation**
+**Test accuracy (logistic regression): 70.0%**
 
 # Heart failure clinical records | AIPI 510
 
@@ -38,17 +38,18 @@ Serum creatinine has a long upper tail (median 1.1, maximum 9.4), as does creati
 
 ## Results
 
-Final test scores are pending the training branch merge. Training produces
-`models/model.joblib` (logistic regression) and `models/baseline.joblib`
-(always predicts no recorded death). Run the three commands above on the
-same checkout so both models use the shared split.
+On 60 held-out patients, logistic regression correctly classified 42 and the always-survived baseline correctly classified 41.
 
-Evaluation writes accuracy, precision, recall, and both confusion matrices to
-`results/metrics.json`. It saves the logistic regression matrix to
-`results/confusion_matrix.png`. Rows are observed outcomes and columns are
-predictions, ordered as no recorded death (0), recorded death (1).
-Recall measures the fraction of observed deaths detected. A model that
-never predicts a death receives zero precision and recall in this report.
+| Model | Test accuracy | Precision for death | Recall for death |
+| --- | ---: | ---: | ---: |
+| Logistic regression | 70.0% | 53.8% | 36.8% |
+| Always-survived baseline | 68.3% | 0.0% | 0.0% |
+
+Logistic regression detected 7 of 19 recorded deaths, missed 12, and raised 6 false alarms. The baseline missed all 19 deaths.
+
+![Logistic regression confusion matrix. Actual outcomes in rows and predictions in columns.](results/confusion_matrix.png)
+
+Training saves both models under `artifacts/`. Evaluation writes the [full metrics](results/metrics.json) and updates the accuracy on the first line of this README.
 
 ## Data credit
 
