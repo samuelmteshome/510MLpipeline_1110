@@ -1,3 +1,5 @@
+**Test accuracy (logistic regression): 70.0%**
+
 # Heart failure clinical records | AIPI 510
 
 Prepare 299 patient records for binary classification. The target, `DEATH_EVENT`, indicates whether a patient died during their observed follow-up. Follow-up duration varies by patient. We exclude `time` because the final duration is unknown at the start of follow-up.
@@ -11,6 +13,8 @@ python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install -r requirements.txt
 python prepare.py
+python train.py
+python evaluate.py
 ```
 
 The original CSV is bundled so the exercise runs offline after dependency installation. The script creates a repeatable 80/20 split with similar outcome proportions in each group. It learns the means and standard deviations of six numeric features from the training patients, applies them to both groups, and passes five binary features through unchanged.
@@ -32,22 +36,20 @@ Serum creatinine has a long upper tail (median 1.1, maximum 9.4), as does creati
 
 **Scoring.** Always predicting no event would score 67.8% training accuracy and catch zero deaths. Compare models by cross-validated average precision, using the 32.2% event prevalence as a reference. Report recall and the confusion matrix at the chosen decision threshold to show how many deaths were missed and how many false alarms occurred.
 
-## Add your classifier
+## Results
 
-Once your partner chooses a scikit-learn classifier, use its instance as `classifier` in the following snippet. Keeping the preprocessing inside the pipeline also lets you cross-validate on the training set without leaking validation-fold statistics.
+On 60 held-out patients, logistic regression correctly classified 42 and the always-survived baseline correctly classified 41.
 
-```python
-from sklearn.metrics import confusion_matrix
-from sklearn.pipeline import make_pipeline
-from prepare import load_split, make_preprocessor
+| Model | Test accuracy | Precision for death | Recall for death |
+| --- | ---: | ---: | ---: |
+| Logistic regression | 70.0% | 53.8% | 36.8% |
+| Always-survived baseline | 68.3% | 0.0% | 0.0% |
 
-X_train, X_test, y_train, y_test = load_split()
-model = make_pipeline(make_preprocessor(), classifier)
-model.fit(X_train, y_train)
-print(confusion_matrix(y_test, model.predict(X_test), labels=[0, 1]))
-```
+Logistic regression detected 7 of 19 recorded deaths, missed 12, and raised 6 false alarms. The baseline missed all 19 deaths.
 
-Rows of the matrix are observed outcomes and columns are predictions. Class 1 means a recorded death.
+![Logistic regression confusion matrix. Actual outcomes in rows and predictions in columns.](results/confusion_matrix.png)
+
+Training saves both models under `artifacts/`. Evaluation writes the [full metrics](results/metrics.json) and updates the accuracy on the first line of this README.
 
 ## Data credit
 

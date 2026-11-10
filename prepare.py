@@ -9,6 +9,9 @@ from sklearn.preprocessing import StandardScaler
 
 
 DATA = Path(__file__).parent / "data" / "heart_failure.csv"
+
+# "time" (follow-up length) is left out on purpose: it is only known after
+# the outcome, so using it would leak the answer into the model.
 CONTINUOUS = [
     "age", "creatinine_phosphokinase", "ejection_fraction", "platelets",
     "serum_creatinine", "serum_sodium",
