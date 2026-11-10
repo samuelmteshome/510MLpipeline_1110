@@ -11,6 +11,8 @@ python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install -r requirements.txt
 python prepare.py
+python train.py
+python evaluate.py
 ```
 
 The original CSV is bundled so the exercise runs offline after dependency installation. The script creates a repeatable 80/20 split with similar outcome proportions in each group. It learns the means and standard deviations of six numeric features from the training patients, applies them to both groups, and passes five binary features through unchanged.
@@ -32,23 +34,19 @@ Serum creatinine has a long upper tail (median 1.1, maximum 9.4), as does creati
 
 **Scoring.** Always predicting no event would score 67.8% training accuracy and catch zero deaths. Compare models by cross-validated average precision, using the 32.2% event prevalence as a reference. Report recall and the confusion matrix at the chosen decision threshold to show how many deaths were missed and how many false alarms occurred.
 
-## Logistic regression workflow on `dev`
+## Results
 
-| Owner | Files | Responsibility |
-| --- | --- | --- |
-| Sam | `evaluate.py`, `README.md` | Score the final model and document the class workflow |
-| Partner | `prepare.py`, `train.py` | Maintain the shared split, compare feature sets on training data, and save the selected pipeline |
+Final test scores are pending the training branch merge. Training produces
+`models/model.joblib` (logistic regression) and `models/baseline.joblib`
+(always predicts no recorded death). Run the three commands above on the
+same checkout so both models use the shared split.
 
-**Training handoff.** Use the training portion of `prepare.load_split()`. Save the fitted scikit-learn pipeline, including feature selection, scaling, and logistic regression, to `artifacts/model.joblib` with `joblib.dump`. Create the directory before saving. The pipeline should accept the original 11-column feature DataFrame and return probabilities for classes 0 and 1. For a two-feature model, select the two columns by name inside the pipeline.
-
-**Final evaluation.** After the training script is ready and the feature set is chosen, run from the repository root:
-
-```sh
-python train.py
-python evaluate.py
-```
-
-To use a different artifact path, run `python evaluate.py --model PATH` with a model saved by your team. The evaluator reconstructs the shared test split, reports average precision alongside event prevalence, and counts detected deaths, missed deaths, false alarms, and correct negatives at a fixed 0.50 threshold. Precision is the fraction of alerts that correspond to recorded deaths. Recall is the fraction of recorded deaths detected.
+Evaluation writes accuracy, precision, recall, and both confusion matrices to
+`results/metrics.json`. It saves the logistic regression matrix to
+`results/confusion_matrix.png`. Rows are observed outcomes and columns are
+predictions, ordered as no recorded death (0), recorded death (1).
+Recall measures the fraction of observed deaths detected. A model that
+never predicts a death receives zero precision and recall in this report.
 
 ## Data credit
 
