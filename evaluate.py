@@ -18,8 +18,8 @@ from matplotlib import pyplot as plt
 
 def main():
     models = {
-        "logistic_regression": Path("models/model.joblib"),
-        "baseline": Path("models/baseline.joblib"),
+        "logistic_regression": Path("artifacts/model.joblib"),
+        "baseline": Path("artifacts/baseline.joblib"),
     }
     for path in models.values():
         if not path.is_file():
