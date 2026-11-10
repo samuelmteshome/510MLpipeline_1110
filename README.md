@@ -32,22 +32,23 @@ Serum creatinine has a long upper tail (median 1.1, maximum 9.4), as does creati
 
 **Scoring.** Always predicting no event would score 67.8% training accuracy and catch zero deaths. Compare models by cross-validated average precision, using the 32.2% event prevalence as a reference. Report recall and the confusion matrix at the chosen decision threshold to show how many deaths were missed and how many false alarms occurred.
 
-## Add your classifier
+## Logistic regression workflow on `dev`
 
-Once your partner chooses a scikit-learn classifier, use its instance as `classifier` in the following snippet. Keeping the preprocessing inside the pipeline also lets you cross-validate on the training set without leaking validation-fold statistics.
+| Owner | Files | Responsibility |
+| --- | --- | --- |
+| Sam | `evaluate.py`, `README.md` | Score the final model and document the class workflow |
+| Partner | `prepare.py`, `train.py` | Maintain the shared split, compare feature sets on training data, and save the selected pipeline |
 
-```python
-from sklearn.metrics import confusion_matrix
-from sklearn.pipeline import make_pipeline
-from prepare import load_split, make_preprocessor
+**Training handoff.** Use the training portion of `prepare.load_split()`. Save the fitted scikit-learn pipeline, including feature selection, scaling, and logistic regression, to `artifacts/model.joblib` with `joblib.dump`. Create the directory before saving. The pipeline should accept the original 11-column feature DataFrame and return probabilities for classes 0 and 1. For a two-feature model, select the two columns by name inside the pipeline.
 
-X_train, X_test, y_train, y_test = load_split()
-model = make_pipeline(make_preprocessor(), classifier)
-model.fit(X_train, y_train)
-print(confusion_matrix(y_test, model.predict(X_test), labels=[0, 1]))
+**Final evaluation.** After the training script is ready and the feature set is chosen, run from the repository root:
+
+```sh
+python train.py
+python evaluate.py
 ```
 
-Rows of the matrix are observed outcomes and columns are predictions. Class 1 means a recorded death.
+To use a different artifact path, run `python evaluate.py --model PATH` with a model saved by your team. The evaluator reconstructs the shared test split, reports average precision alongside event prevalence, and counts detected deaths, missed deaths, false alarms, and correct negatives at a fixed 0.50 threshold. Precision is the fraction of alerts that correspond to recorded deaths. Recall is the fraction of recorded deaths detected.
 
 ## Data credit
 
