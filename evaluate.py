@@ -49,6 +49,12 @@ def main():
     plt.close(fig)
     summary = json.dumps({"test_patients": len(y_test), **metrics}, indent=2)
     (results / "metrics.json").write_text(summary + "\n", encoding="utf-8")
+    readme = Path("README.md")
+    first_line, separator, rest = readme.read_text(encoding="utf-8").partition("\n")
+    label = "**Test accuracy (logistic regression): "
+    if first_line.startswith(label):
+        accuracy = metrics["logistic_regression"]["accuracy"]
+        readme.write_text(f"{label}{accuracy:.1%}**{separator}{rest}", encoding="utf-8")
     print(summary)
 
 

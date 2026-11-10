@@ -1,3 +1,5 @@
+**Test accuracy (logistic regression): pending evaluation**
+
 # Heart failure clinical records | AIPI 510
 
 Prepare 299 patient records for binary classification. The target, `DEATH_EVENT`, indicates whether a patient died during their observed follow-up. Follow-up duration varies by patient. We exclude `time` because the final duration is unknown at the start of follow-up.
