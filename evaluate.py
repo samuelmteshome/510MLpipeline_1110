@@ -1,38 +1,61 @@
-"""Evaluate the saved logistic regression pipeline on the shared test split."""
-import argparse
+"""Compare the two trained classifiers on the shared held-out patients."""
+import json
 from pathlib import Path
 
 import joblib
-from sklearn.metrics import average_precision_score, confusion_matrix, precision_score, recall_score
+import matplotlib
+import numpy as np
+from sklearn.metrics import (
+    ConfusionMatrixDisplay, accuracy_score, confusion_matrix, precision_score,
+    recall_score,
+)
 
 from prepare import load_split
 
-
-def report(model, features, target):
-    event_column = list(model.classes_).index(1)
-    scores = model.predict_proba(features)[:, event_column]
-    predictions = scores >= 0.5
-    tn, fp, fn, tp = confusion_matrix(target, predictions, labels=[0, 1]).ravel()
-
-    print(f"Patients: {len(target)} | Recorded deaths: {target.sum()}")
-    print(f"Average precision: {average_precision_score(target, scores):.3f}"
-          f" (prevalence reference: {target.mean():.3f})")
-    print("At a 0.50 probability threshold:")
-    print(f"  Precision: {precision_score(target, predictions, zero_division=0):.3f}")
-    print(f"  Recall:    {recall_score(target, predictions, zero_division=0):.3f}")
-    print(f"  Deaths detected: {tp} | Deaths missed: {fn}")
-    print(f"  False alarms: {fp} | Correct negatives: {tn}")
+matplotlib.use("Agg")
+from matplotlib import pyplot as plt
 
 
 def main():
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--model", type=Path, default=Path("artifacts/model.joblib"))
-    args = parser.parse_args()
-    if not args.model.is_file():
-        parser.error(f"Missing {args.model}. Run train.py or pass --model PATH.")
-    model = joblib.load(args.model)
+    models = {
+        "logistic_regression": Path("artifacts/model.joblib"),
+        "baseline": Path("artifacts/baseline.joblib"),
+    }
+    for path in models.values():
+        if not path.is_file():
+            raise SystemExit(f"Missing {path}. Run python train.py first.")
+
     _, X_test, _, y_test = load_split()
-    report(model, X_test, y_test)
+    metrics = {}
+    for name, path in models.items():
+        predictions = joblib.load(path).predict(X_test)
+        metrics[name] = {
+            "accuracy": float(accuracy_score(y_test, predictions)),
+            "precision": float(precision_score(y_test, predictions, zero_division=0)),
+            "recall": float(recall_score(y_test, predictions, zero_division=0)),
+            "confusion_matrix": confusion_matrix(y_test, predictions, labels=[0, 1]).tolist(),
+        }
+
+    results = Path("results")
+    results.mkdir(exist_ok=True)
+    fig, ax = plt.subplots(figsize=(5, 4), layout="constrained")
+    display = ConfusionMatrixDisplay(
+        confusion_matrix=np.asarray(metrics["logistic_regression"]["confusion_matrix"]),
+        display_labels=["No recorded death", "Recorded death"],
+    )
+    display.plot(ax=ax, cmap="Blues", colorbar=False, values_format="d")
+    ax.set_title(f"Logistic regression · {len(y_test)} test patients")
+    fig.savefig(results / "confusion_matrix.png", dpi=160)
+    plt.close(fig)
+    summary = json.dumps({"test_patients": len(y_test), **metrics}, indent=2)
+    (results / "metrics.json").write_text(summary + "\n", encoding="utf-8")
+    readme = Path("README.md")
+    first_line, separator, rest = readme.read_text(encoding="utf-8").partition("\n")
+    label = "**Test accuracy (logistic regression): "
+    if first_line.startswith(label):
+        accuracy = metrics["logistic_regression"]["accuracy"]
+        readme.write_text(f"{label}{accuracy:.1%}**{separator}{rest}", encoding="utf-8")
+    print(summary)
 
 
 if __name__ == "__main__":
